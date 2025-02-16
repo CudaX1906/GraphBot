@@ -1,0 +1,11 @@
+langchain
+langchain_community
+langgraph
+langsmith
+huggingface_hub
+python-dotenv
+typing-extensions
+chromadb
+pypdf
+langchain_nvidia_ai_endpoints
+langchain_huggingface
