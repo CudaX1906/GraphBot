@@ -18,8 +18,25 @@ This repository implements an advanced Retrieval-Augmented Generation (RAG) syst
 The system is built as a directed graph using LangGraph, with nodes representing different processing stages and edges defining the flow logic:
 
 ```
-START → query_analysis → [simple/complex routing] → retriever → document_grading → [quality-based routing] → response_generation → user_review → [feedback loop/END]
-```
+flowchart TD
+    START(START) --> QUERY[query_analysis]
+    
+    QUERY -->|simple| RETRIEVE[retriever]
+    QUERY -->|complex| DECOMPOSE[decompose]
+    
+    DECOMPOSE --> RETRIEVE
+    
+    RETRIEVE --> GRADE[document_grading]
+    
+    GRADE -->|yes| RESPONSE[response_generation]
+    GRADE -->|no| RERANK[rerank]
+    
+    RERANK --> RETRIEVE
+    
+    RESPONSE --> USER_REVIEW[user_review]
+    
+    USER_REVIEW -->|yes| END(END)
+    USER_REVIEW -->|no| RETRIEVE```
 
 When user review indicates an unclear response, the system automatically increments the top k parameter by 2 and re-initiates the retrieval process.
 
