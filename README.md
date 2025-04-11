@@ -36,7 +36,9 @@ flowchart TD
     RESPONSE --> USER_REVIEW[user_review]
     
     USER_REVIEW -->|yes| END(END)
-    USER_REVIEW -->|no| RETRIEVE```
+    USER_REVIEW -->|no| RETRIEVE
+
+```
 
 When user review indicates an unclear response, the system automatically increments the top k parameter by 2 and re-initiates the retrieval process.
 
