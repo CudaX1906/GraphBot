@@ -22,13 +22,13 @@ def create_rag_graph():
     graph_builder.add_node("response_generation", response_generation)
     graph_builder.add_node("user_review", user_review_node)
 
-    # Start with query analysis
+    
     graph_builder.add_edge(START, "query_analysis")
 
-    # Conditional routing based on query complexity
+    
     graph_builder.add_conditional_edges(
         "query_analysis", 
-        lambda state: state.get('query_complexity'),  # Use .get() for safety
+        lambda state: state.get('query_complexity'),  
         {
             "simple": "retriever",
             "complex": "decompose"
@@ -42,18 +42,18 @@ def create_rag_graph():
     # Conditional document grading
     graph_builder.add_conditional_edges(
         "document_grading",
-        lambda state: state.get('document_grade', 'no'),  # Use .get() for safety
+        lambda state: state.get('document_grade', 'no'), 
         {
             "no": "rerank",
             "yes": "response_generation"
         }
     )
 
-    # Additional edges
+    
     graph_builder.add_edge("rerank", "retriever")
     graph_builder.add_edge("response_generation", "user_review")
 
-    # Final conditional edges
+    
     graph_builder.add_conditional_edges(
         "user_review",
         lambda state: state.get('user_feedback', 'yes'),  

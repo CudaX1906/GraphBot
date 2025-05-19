@@ -37,21 +37,24 @@ def decompose_tool(query:str):
     llm  = create_llm()
     response = llm.invoke(prompt)
 
-    return response
+    return response.content
 
 @tool
 def rerank_tool(query: str, docs: list):
     """
     Reranks a list of retrieved documents based on their relevance to the given query.
     """
-    
-    retriever = create_retriever()
-    reranker = NVIDIARerank(nvidia_api_key=Config.NVIDIA_API_KEY,model="nvidia / nv-rerankqa-mistral-4b-v3")
-    compression_retriever = ContextualCompressionRetriever(
-        base_compressor=reranker, base_retriever=retriever
-    )
+    from langchain_community.cross_encoders import HuggingFaceCrossEncoder
+    from langchain.retrievers.document_compressors import CrossEncoderReranker
 
-    
-    reranked_docs = compression_retriever.compress_documents(query)
+    # Load the BAAI reranker model
+    cross_encoder = HuggingFaceCrossEncoder(model_name="BAAI/bge-reranker-base")
 
+    # Wrap it in a reranker with correct parameter name 'model'
+    reranker = CrossEncoderReranker(model=cross_encoder)
+
+    # Use reranker.compress_documents(docs, query) to rerank your documents
+    reranked_docs = reranker.compress_documents(documents=docs, query=query)
+    
     return reranked_docs
+

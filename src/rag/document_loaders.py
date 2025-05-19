@@ -6,7 +6,7 @@ import os
 
 def load_pdf_document(
     pdf_path: str, 
-    chunk_size: int = 1000,
+    chunk_size: int = 500,
     chunk_overlap: int = 200
 ) -> List[Document]:
     

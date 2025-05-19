@@ -1,11 +1,24 @@
 import logging
-from .graph import rag_graph
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
+from dotenv import load_dotenv
+from .shared import client as shared_client
+from langsmith import Client
+import os
+
+
+
+load_dotenv()
+
 def main():
     logger.info("Starting LangGraph Chatbot")
+
+    global shared_client
+    shared_client = Client(api_key = os.getenv("LANGSMITH_API_KEY"),api_url=os.getenv("LANGSMITH_ENDPOINT"))
+
+    from .graph import rag_graph
 
     while True:
         try:
@@ -19,10 +32,14 @@ def main():
                 continue
 
             logger.info(f"Processing query: {user_query}")
-            result = rag_graph.invoke({"query": user_query})
-
-            print("\nAssistant:", result or "Couldn't generate a response.")
-            print("=" * 50)
+            try:
+                
+                result = rag_graph.invoke({"query": user_query})
+                print("\nAssistant:", result or "Couldn't generate a response.")
+                print("=" * 50)
+            except Exception as e:
+                print("Error:",e)
+            
 
         except KeyboardInterrupt:
             print("\nGoodbye!")
