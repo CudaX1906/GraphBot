@@ -12,7 +12,7 @@ class State(TypedDict):
     retrieved_documents: Optional[List[Document]]
     feedback:Optional[str]
     current_generation: Optional[str]
-    k : Optional[int] = 4
+    k : Optional[int] = 2
     
 
 

@@ -8,9 +8,11 @@ from .tools import decompose_tool,rerank_tool
 from langgraph.types import interrupt
 from .config import Config
 from .retriever import create_retriever
+from .shared import client
 
 
-@traceable(name="Query Analysis", run_type="chain")
+
+@traceable(client=client, project_name="agent-demo",name="Query Analysis", run_type="chain")
 def query_analysis_node(state: State):
     llm = create_llm()
     parser = PydanticOutputParser(pydantic_object =QueryClassification)
@@ -36,12 +38,12 @@ def query_analysis_node(state: State):
         ).format(user_query=state["query"])
      
     llm_response = llm.invoke(prompt)
-    output = parser.parse(llm_response)
+    output = parser.parse(llm_response.content)
 
     
     return {"query":state["query"],"query_complexity":output.complexity}
 
-@traceable(name="decompose-tool",run_type="chain")
+@traceable(client=client, project_name="agent-demo",name="decompose-tool",run_type="chain")
 def decompose_node(state: State):
     """
     Decompose complex queries into sub-queries
@@ -61,18 +63,19 @@ def rerank_node(state: State):
     """
     query = state["query"]
     retrieved_docs = state["retrieved_documents"]
-    
-    reranked_docs = rerank_tool.invoke(
-        query=query, 
-        docs=retrieved_docs
-    )
+       
+    reranked_docs = rerank_tool.invoke({
+    "query": query,
+    "docs": retrieved_docs,
+})
+
     
     return {
         "query": query,
         "retrieved_documents": reranked_docs,
     }
 
-@traceable(name="retriever", run_type="chain")
+@traceable(client=client, project_name="agent-demo",name="retriever", run_type="chain")
 def retriever_node(state: State):
     query = state.get("query", "")
     query_complexity = state.get("query_complexity", "simple")
@@ -97,7 +100,7 @@ def retriever_node(state: State):
         "retrieved_documents": relevant_docs,
     }
 
-@traceable(name="grading",run_type="chain")
+@traceable(client=client, project_name="agent-demo",name="grading",run_type="chain")
 def grading_node(state: State):
     llm = create_llm()
     parser = PydanticOutputParser(pydantic_object=GradeDocuments)
@@ -108,7 +111,8 @@ def grading_node(state: State):
                    Retrieved Documents : {docs}
 
                    user question : {query}
-
+                    
+                   Note : Make Sure you just provide response as Yes or No , No additional Response is required
                    """
     
     prompt = PromptTemplate(
@@ -119,9 +123,9 @@ def grading_node(state: State):
     
     response = llm.invoke(prompt)
    
-    return {"query":state["query"],"retrieved_documents":state["retrieved_documents"],"document_grade":response}
+    return {"query":state["query"],"retrieved_documents":state["retrieved_documents"],"document_grade":response.content}
     
-@traceable(name="response generation",run_type="chain")
+@traceable(client=client, project_name="agent-demo",name="response generation",run_type="chain")
 def response_generation(state:State):
     llm = create_llm()
     parser = PydanticOutputParser(pydantic_object=ResponseGenerator)
@@ -146,9 +150,9 @@ def response_generation(state:State):
             ).format(docs = state[ "retrieved_documents"],query = state["query"])
     
     response = llm.invoke(prompt)
-    return response
+    return response.content
 
-@traceable(name="user-review",run_type="chain")
+@traceable(client=client, project_name="agent-demo",name="user-review",run_type="chain")
 def user_review_node(state:State):
     is_approved = interrupt({
         "response" : state["current_generation"],

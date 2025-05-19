@@ -1,6 +1,8 @@
 from langchain_huggingface.llms import HuggingFaceEndpoint
 from .config import Config
 import logging
+from langchain_groq import ChatGroq
+import os
 
 
 logging.basicConfig(level=logging.INFO)
@@ -11,13 +13,14 @@ def create_llm():
         if not Config.HUGGINGFACEHUB_API_TOKEN:
             raise ValueError("Hugging Face API token is missing")
             
-        return HuggingFaceEndpoint(
-            model=Config.MODEL_NAME,
-            huggingfacehub_api_token=Config.HUGGINGFACEHUB_API_TOKEN,
-            task="text-generation",
-            max_new_tokens=Config.MAX_NEW_TOKENS,
-            temperature=0.1
+        llm = ChatGroq(
+            model="llama-3.1-8b-instant",
+            temperature=0,
+            max_tokens=None,
+            timeout=None,
+            max_retries=2,
         )
+        return llm
     except Exception as e:
         logger.error(f"Error creating LLM: {str(e)}")
         raise
