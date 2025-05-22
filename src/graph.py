@@ -10,9 +10,15 @@ from .nodes import (
     decompose_node
 )
 
+from langgraph.checkpoint.memory import InMemorySaver
+
+
+
+
+
 def create_rag_graph():
     graph_builder = StateGraph(State)
-
+    checkpointer = InMemorySaver()
     # Add nodes
     graph_builder.add_node("query_analysis", query_analysis_node)
     graph_builder.add_node("retriever", retriever_node)
@@ -56,14 +62,14 @@ def create_rag_graph():
     
     graph_builder.add_conditional_edges(
         "user_review",
-        lambda state: state.get('user_feedback', 'yes'),  
+        lambda state: state.get('feedback', 'yes'),  
         {
             "yes": END,
             "no": "retriever"
         }
     )
 
-    return graph_builder.compile()
+    return graph_builder.compile(checkpointer=checkpointer)
 
 # Create the graph
 rag_graph = create_rag_graph()

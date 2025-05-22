@@ -6,6 +6,8 @@ logger = logging.getLogger(__name__)
 from dotenv import load_dotenv
 from .shared import client as shared_client
 from langsmith import Client
+from langgraph.types import Command
+
 import os
 
 
@@ -19,7 +21,7 @@ def main():
     shared_client = Client(api_key = os.getenv("LANGSMITH_API_KEY"),api_url=os.getenv("LANGSMITH_ENDPOINT"))
 
     from .graph import rag_graph
-
+    config = {"configurable": {"thread_id": "chatbot"}}
     while True:
         try:
             user_query = input("\nUser: ").strip()
@@ -34,7 +36,12 @@ def main():
             logger.info(f"Processing query: {user_query}")
             try:
                 
-                result = rag_graph.invoke({"query": user_query})
+                result = rag_graph.invoke({"query": user_query,"k":2},config=config)
+                print("="*100)
+                print(result["__interrupt__"])
+                user_input = input("Approve? (yes/no): ").strip().lower()   
+                print(rag_graph.invoke(Command(resume=user_input),config=config))
+                print("="*100)
                 print("\nAssistant:", result or "Couldn't generate a response.")
                 print("=" * 50)
             except Exception as e:

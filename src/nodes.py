@@ -104,15 +104,18 @@ def retriever_node(state: State):
 def grading_node(state: State):
     llm = create_llm()
     parser = PydanticOutputParser(pydantic_object=GradeDocuments)
-    template = """"You are a grader assessing relevance of a retrieved document to a user question. \n 
-                   If the document contains keyword(s) or semantic meaning related to the question, grade it as relevant. \n
-                   Give a binary score 'yes' or 'no' score to indicate whether the document is relevant to the question.
-                   
-                   Retrieved Documents : {docs}
+    template = """You are a grader assessing the relevance of a retrieved document to a user's question. Your task is to determine whether the document contains any keywords or has a semantic meaning related to the question. If the document is relevant, assign a score of 'yes'. If the document is not relevant, assign a score of 'no'.
 
-                   user question : {query}
-                    
-                   Note : Make Sure you just provide response as Yes or No , No additional Response is required
+When making your assessment, consider the following guidelines:
+
+Keywords: Look for specific words or phrases in the document that match the user's question. For example, if the user asks 'What is the capital of France?', look for the words 'capital' and 'France' in the document.
+Semantic meaning: Consider whether the document addresses the same topic or concept as the user's question, even if it doesn't contain the exact keywords. For example, if the user asks 'How do I bake a cake?', a document that provides a recipe for a cake without using the word 'bake' might still be relevant.
+Retrieved Documents: {docs}
+User Question: {query}
+
+Based on these guidelines, assign a score of 'yes' or 'no' to indicate whether the document is relevant to the user's question.
+
+Note: No additional information or context is needed. You just need to answer {{yes}} or {{no}}.
                    """
     
     prompt = PromptTemplate(
@@ -122,8 +125,15 @@ def grading_node(state: State):
             ).format(docs = state["retrieved_documents"],query = state["query"])
     
     response = llm.invoke(prompt)
+
+    grade = response.content.strip().lower()
+
+    if "yes" in grade:
+        grade = "yes"
+    else:
+        grade = "no"
    
-    return {"query":state["query"],"retrieved_documents":state["retrieved_documents"],"document_grade":response.content}
+    return {"query":state["query"],"retrieved_documents":state["retrieved_documents"],"document_grade":grade}
     
 @traceable(client=client, project_name="agent-demo",name="response generation",run_type="chain")
 def response_generation(state:State):
@@ -150,17 +160,17 @@ def response_generation(state:State):
             ).format(docs = state[ "retrieved_documents"],query = state["query"])
     
     response = llm.invoke(prompt)
-    return response.content
+    return {"current_generation":response.content}
 
 @traceable(client=client, project_name="agent-demo",name="user-review",run_type="chain")
 def user_review_node(state:State):
-    is_approved = interrupt({
+    review = interrupt({
         "response" : state["current_generation"],
         "action" : "please review and approve the response"
     })
-
-    if is_approved:
+    
+    if review == "yes":
         return {"current_generation":state["current_generation"]}
     else:
         k = state["k"]
-        return {"k":k+2}
+        return {"k":k+2,"feedback":review}
